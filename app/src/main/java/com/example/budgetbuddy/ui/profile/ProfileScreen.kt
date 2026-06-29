@@ -13,9 +13,11 @@ import com.example.budgetbuddy.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showLogoutConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -37,13 +39,19 @@ fun ProfileScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = onNavigateToSettings,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Settings")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = {
-                viewModel.logout()
-                onLogout()
-            },
+            onClick = { showLogoutConfirm = true },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
         ) {
@@ -54,5 +62,26 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
+    }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Log Out") },
+            text = { Text("Are you sure you want to log out?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        showLogoutConfirm = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Log Out") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 }

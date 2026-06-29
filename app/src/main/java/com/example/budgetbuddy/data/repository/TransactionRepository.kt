@@ -26,6 +26,23 @@ class TransactionRepository {
         Result.failure(e)
     }
 
+    suspend fun updateTransaction(transaction: Transaction): Result<Unit> = try {
+        supabase.postgrest["transactions"].update(
+            {
+                set("amount", transaction.amount)
+                set("description", transaction.description)
+                set("type", transaction.type)
+                set("category_id", transaction.categoryId)
+                set("transaction_date", transaction.transactionDate)
+            }
+        ) {
+            filter { eq("id", transaction.id) }
+        }
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     suspend fun deleteTransaction(id: Int): Result<Unit> = try {
         supabase.postgrest["transactions"]
             .delete { filter { eq("id", id) } }

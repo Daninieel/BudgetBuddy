@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.budgetbuddy.data.model.Transaction
 import java.time.LocalDate
 
 val expenseCategories = listOf("Food", "Transportation", "Shopping", "Bills", "School", "Entertainment")
@@ -27,33 +28,52 @@ val categoryIdMap = mapOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionDialog(
+    existingTransaction: Transaction? = null,
+    externalError: String? = null,
     onDismiss: () -> Unit,
     onConfirm: (Double, String, String, String, Int) -> Unit
 ) {
-    var amount by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedType by remember { mutableStateOf("expense") }
-    var selectedCategory by remember { mutableStateOf("Food") }
+    val isEditMode = existingTransaction != null
+
+    var amount by remember { mutableStateOf(existingTransaction?.amount?.toString() ?: "") }
+    var description by remember { mutableStateOf(existingTransaction?.description ?: "") }
+    var selectedType by remember { mutableStateOf(existingTransaction?.type ?: "expense") }
     var expanded by remember { mutableStateOf(false) }
-    val today = LocalDate.now().toString()
+    var localValidationError by remember { mutableStateOf<String?>(null) }
+
+    val displayedError = localValidationError ?: externalError
 
     val categories = if (selectedType == "expense") expenseCategories else incomeCategories
 
+    val initialCategoryName = existingTransaction?.let { tx ->
+        categoryIdMap.entries.find { it.value == tx.categoryId }?.key
+    } ?: categories.first()
+
+    var selectedCategory by remember { mutableStateOf(initialCategoryName) }
+
     LaunchedEffect(selectedType) {
-        selectedCategory = categories.first()
+        if (selectedCategory !in categories) {
+            selectedCategory = categories.first()
+        }
     }
+
+    val today = remember { LocalDate.now().toString() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Transaction") },
+        title = { Text(if (isEditMode) "Edit Transaction" else "Add Transaction") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { amount = it },
+                    onValueChange = {
+                        amount = it
+                        localValidationError = null
+                    },
                     label = { Text("Amount") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
+                    isError = displayedError != null,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -102,14 +122,38 @@ fun AddTransactionDialog(
                         }
                     }
                 }
+
+                displayedError?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         },
         confirmButton = {
             Button(onClick = {
-                val parsedAmount = amount.toDoubleOrNull() ?: return@Button
-                val categoryId = categoryIdMap[selectedCategory] ?: 1
-                onConfirm(parsedAmount, description, selectedType, today, categoryId)
-            }) { Text("Add") }
+                val parsedAmount = amount.toDoubleOrNull()
+
+                when {
+                    description.isBlank() -> {
+                        localValidationError = "Description cannot be empty."
+                    }
+                    parsedAmount == null -> {
+                        localValidationError = "Enter a valid number for the amount."
+                    }
+                    parsedAmount <= 0.0 -> {
+                        localValidationError = "Amount must be greater than ₱0.00."
+                    }
+                    else -> {
+                        localValidationError = null
+                        val categoryId = categoryIdMap[selectedCategory] ?: 1
+                        val date = existingTransaction?.transactionDate ?: today
+                        onConfirm(parsedAmount, description, selectedType, date, categoryId)
+                    }
+                }
+            }) { Text(if (isEditMode) "Save" else "Add") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

@@ -16,6 +16,7 @@ import com.example.budgetbuddy.ui.transaction.TransactionScreen
 import com.example.budgetbuddy.ui.profile.ProfileScreen
 import com.example.budgetbuddy.ui.analytics.AnalyticsScreen
 import com.example.budgetbuddy.ui.budget.BudgetScreen
+import com.example.budgetbuddy.ui.settings.SettingsScreen
 
 object Routes {
     const val LOGIN = "login"
@@ -26,6 +27,7 @@ object Routes {
     const val ANALYTICS = "analytics"
     const val PROFILE = "profile"
     const val BUDGET = "budget"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -101,12 +103,26 @@ fun AppNavigation() {
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(0) { inclusive = true }
                         }
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Routes.SETTINGS)
                     }
                 )
             }
 
             composable(Routes.BUDGET) {
                 BudgetScreen()
+            }
+
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    onLogout = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }

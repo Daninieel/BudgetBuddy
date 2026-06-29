@@ -45,13 +45,16 @@ class DashboardViewModel : ViewModel() {
                     val expenses = transactions
                         .filter { it.type == "expense" }
                         .sumOf { it.amount }
+
+                    val rawBalance = income - expenses
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             totalIncome = income,
                             totalExpenses = expenses,
-                            balance = income - expenses,
-                            monthlySavings = income - expenses,
+                            balance = rawBalance.coerceAtLeast(0.0),
+                            monthlySavings = rawBalance,
                             recentTransactions = transactions.take(5)
                         )
                     }
